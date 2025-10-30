@@ -3,7 +3,7 @@ test_files
 .idea/
 *.iml
 test_runner.cc
-.DS_Store/
+.DS_Store
 
 build/
 dist/
