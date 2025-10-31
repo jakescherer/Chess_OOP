@@ -108,8 +108,30 @@ bool ChessBoard::movePiece(int fromRow, int fromColumn, int toRow, int toColumn)
     return false;
 }
 
-bool ChessBoard::isPieceUnderThreat(int row, int column)
-{
+bool ChessBoard::isPieceUnderThreat(int row, int col) {
+    ChessPiece *target = getPiece(row, col);
+    if (target == nullptr) {
+        return false;
+    }
+
+    Color targetColor = target->getColor();
+
+    for (int r = 0; r < numRows; r++){
+        for (int c = 0; c < numCols; c++) {
+            ChessPiece *attacker = getPiece(r, c);
+
+            if (attacker == nullptr) { //empty space
+                continue;
+            }
+            if (attacker->getColor() == targetColor) {//same team
+                continue;
+            }
+            if (attacker->canMoveToLocation(row, col)) { // can attacker move to target
+                return true;
+            }
+        }
+    }
+
     return false;
 }
 
