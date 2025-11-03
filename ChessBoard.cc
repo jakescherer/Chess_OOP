@@ -93,7 +93,7 @@ bool ChessBoard::isValidMove(int fromRow, int fromColumn, int toRow, int toColum
 
         while (currentRow != toRow || currentCol != toColumn) {
             if (board[currentRow][currentCol] != nullptr) {
-                return false;
+                return false; // Path is obstructed
             }
             currentRow += rowStep;
             currentCol += colStep;
@@ -105,12 +105,37 @@ bool ChessBoard::isValidMove(int fromRow, int fromColumn, int toRow, int toColum
 
 bool ChessBoard::movePiece(int fromRow, int fromColumn, int toRow, int toColumn)
 {
+    // Check if the piece being moved belongs to the current team
+    ChessPiece *piece = getPiece(fromRow, fromColumn);
+    if (piece == nullptr || piece->getColor() != turn) {
+        return false; // no piece or not the team's turn
+    }
+
+    if (isValidMove(fromRow, fromColumn, toRow, toColumn)) {
+        ChessPiece *targetPiece = getPiece(toRow, toColumn);
+
+        // delete other team target if found
+        if (targetPiece != nullptr && targetPiece->getColor() != piece->getColor()) {
+            delete targetPiece;
+        }
+
+        // Move piece
+        board[toRow][toColumn] = piece;
+        board[fromRow][fromColumn] = nullptr;
+        piece->setPosition(toRow, toColumn);
+
+        // Toggle turn
+        turn = (turn == White) ? Black : White;
+
+        return true;
+    }
+
     return false;
 }
 
 bool ChessBoard::isPieceUnderThreat(int row, int col) {
     ChessPiece *target = getPiece(row, col);
-    if (target == nullptr) {
+    if (target == nullptr || target->getColor() == turn) {
         return false;
     }
 
@@ -126,7 +151,8 @@ bool ChessBoard::isPieceUnderThreat(int row, int col) {
             if (attacker->getColor() == targetColor) {//same team
                 continue;
             }
-            if (attacker->canMoveToLocation(row, col)) { // can attacker move to target
+            // Use isValidMove to check if attacker can reach target for path obstruction
+            if (isValidMove(r, c, row, col)) {
                 return true;
             }
         }
@@ -165,4 +191,3 @@ std::ostringstream ChessBoard::displayBoard()
 
     return outputString;
 }
- 
