@@ -135,7 +135,7 @@ bool ChessBoard::movePiece(int fromRow, int fromColumn, int toRow, int toColumn)
 
 bool ChessBoard::isPieceUnderThreat(int row, int col) {
     ChessPiece *target = getPiece(row, col);
-    if (target == nullptr || target->getColor() == turn) {
+    if (target == nullptr) {
         return false;
     }
 
@@ -151,7 +151,8 @@ bool ChessBoard::isPieceUnderThreat(int row, int col) {
             if (attacker->getColor() == targetColor) {//same team
                 continue;
             }
-            // Use isValidMove to check if attacker can reach target for path obstruction
+            
+            // Use isValidMove to check if attacker can reach target (includes path obstruction)
             if (isValidMove(r, c, row, col)) {
                 return true;
             }
