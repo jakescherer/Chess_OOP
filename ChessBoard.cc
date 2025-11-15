@@ -180,15 +180,50 @@ bool ChessBoard::isPieceUnderThreat(int row, int col) {
                 continue;
             }
             
-            // Use isValidMove to check if attacker can reach target (includes path obstruction)
-            if (isValidMove(r, c, row, col)) {
-                return true;
+            // Simple line of attack check - can this piece reach the target?
+            if (!attacker->canMoveToLocation(row, col)) {
+                continue;
             }
+
+            // Check path obstruction for Rook and Bishop
+            Type pieceType = attacker->getType();
+            if (pieceType == Rook || pieceType == Bishop) {
+                int rowStep = 0;
+                int colStep = 0;
+
+                if (row != r) {
+                    rowStep = (row > r) ? 1 : -1;
+                }
+                if (col != c) {
+                    colStep = (col > c) ? 1 : -1;
+                }
+
+                int currentRow = r + rowStep;
+                int currentCol = c + colStep;
+                bool pathClear = true;
+
+                while (currentRow != row || currentCol != col) {
+                    if (board[currentRow][currentCol] != nullptr) {
+                        pathClear = false;
+                        break;
+                    }
+                    currentRow += rowStep;
+                    currentCol += colStep;
+                }
+                
+                if (!pathClear) {
+                    continue;
+                }
+            }
+
+            return true; // Found an attacker with clear line of attack
         }
     }
 
     return false;
 }
+
+
 
 std::ostringstream ChessBoard::displayBoard()
 {
