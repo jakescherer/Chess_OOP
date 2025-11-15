@@ -129,6 +129,37 @@ namespace Student
          * An output stream containing the full board layout.
          */
         std::ostringstream displayBoard();
+
+        /**
+         * @brief
+         * Finds the position of the king for the specified color.
+         * @param color
+         * The color of the king to find (White or Black).
+         * @param kingRow
+         * Reference to store the king's row position.
+         * @param kingCol
+         * Reference to store the king's column position.
+         * @return
+         * Returns true if the king is found, false otherwise.
+         */
+        bool findKing(Color color, int &kingRow, int &kingCol);
+
+        /**
+         * @brief
+         * Checks if making a move would leave the moving player's king in check.
+         * This method simulates the move without permanently modifying the board.
+         * @param fromRow
+         * The row of the piece to be moved.
+         * @param fromColumn
+         * The column of the piece to be moved.
+         * @param toRow
+         * The row of the destination position.
+         * @param toColumn
+         * The column of the destination position.
+         * @return
+         * Returns true if the move would result in the king being in check.
+         */
+        bool wouldBeInCheck(int fromRow, int fromColumn, int toRow, int toColumn);
     };
 }
 

@@ -100,6 +100,28 @@ bool ChessBoard::isValidMove(int fromRow, int fromColumn, int toRow, int toColum
         }
     }
 
+    // Kings cannot move into check
+    if (pieceType == King) {
+        ChessPiece *capturedPiece = board[toRow][toColumn];
+        int originalRow = piece->getRow();
+        int originalCol = piece->getColumn();
+        
+        board[toRow][toColumn] = piece;
+        board[fromRow][fromColumn] = nullptr;
+        piece->setPosition(toRow, toColumn);
+        
+        bool wouldBeUnderThreat = isPieceUnderThreat(toRow, toColumn);
+        
+        // rollback move
+        board[fromRow][fromColumn] = piece;
+        board[toRow][toColumn] = capturedPiece;
+        piece->setPosition(originalRow, originalCol);
+        
+        if (wouldBeUnderThreat) {
+            return false; // King cannot move into check
+        }
+    }
+
     return true;
 }
 
@@ -111,26 +133,32 @@ bool ChessBoard::movePiece(int fromRow, int fromColumn, int toRow, int toColumn)
         return false; // no piece or not the team's turn
     }
 
-    if (isValidMove(fromRow, fromColumn, toRow, toColumn)) {
-        ChessPiece *targetPiece = getPiece(toRow, toColumn);
-
-        // delete other team target if found
-        if (targetPiece != nullptr && targetPiece->getColor() != piece->getColor()) {
-            delete targetPiece;
-        }
-
-        // Move piece
-        board[toRow][toColumn] = piece;
-        board[fromRow][fromColumn] = nullptr;
-        piece->setPosition(toRow, toColumn);
-
-        // Toggle turn
-        turn = (turn == White) ? Black : White;
-
-        return true;
+    // basic move check (bounds, piece movement rules, path obstruction)
+    if (!isValidMove(fromRow, fromColumn, toRow, toColumn)) {
+        return false;
     }
 
-    return false;
+    // check if move results in king being in check
+    if (wouldBeInCheck(fromRow, fromColumn, toRow, toColumn)) {
+        return false; 
+    }
+
+    ChessPiece *targetPiece = getPiece(toRow, toColumn);
+
+    // delete other team target if found
+    if (targetPiece != nullptr && targetPiece->getColor() != piece->getColor()) {
+        delete targetPiece;
+    }
+
+    // Move piece
+    board[toRow][toColumn] = piece;
+    board[fromRow][fromColumn] = nullptr;
+    piece->setPosition(toRow, toColumn);
+
+    // Toggle turn
+    turn = (turn == White) ? Black : White;
+
+    return true;
 }
 
 bool ChessBoard::isPieceUnderThreat(int row, int col) {
@@ -191,4 +219,53 @@ std::ostringstream ChessBoard::displayBoard()
     outputString << std::endl << std::endl;
 
     return outputString;
+}
+
+bool ChessBoard::findKing(Color color, int &kingRow, int &kingCol)
+{
+    for (int r = 0; r < numRows; r++) {
+        for (int c = 0; c < numCols; c++) {
+            ChessPiece *piece = board[r][c];
+            if (piece != nullptr && piece->getType() == King && piece->getColor() == color) {
+                kingRow = r;
+                kingCol = c;
+                return true;
+            }
+        }
+    }
+    return false; // king not found (shouldn't happen in a valid game)
+}
+
+bool ChessBoard::wouldBeInCheck(int fromRow, int fromColumn, int toRow, int toColumn)
+{
+    ChessPiece *movingPiece = board[fromRow][fromColumn];
+    if (movingPiece == nullptr) {
+        return false; // No piece to move
+    }
+
+    Color movingColor = movingPiece->getColor();
+    
+    // Save current state for rollback
+    ChessPiece *capturedPiece = board[toRow][toColumn];
+    int originalRow = movingPiece->getRow();
+    int originalCol = movingPiece->getColumn();
+    
+    board[toRow][toColumn] = movingPiece;
+    board[fromRow][fromColumn] = nullptr;
+    movingPiece->setPosition(toRow, toColumn);
+    
+    int kingRow, kingCol;
+    bool kingFound = findKing(movingColor, kingRow, kingCol);
+    
+    bool inCheck = false;
+    if (kingFound) {
+        inCheck = isPieceUnderThreat(kingRow, kingCol);
+    }
+    
+    // Rollback the move
+    board[fromRow][fromColumn] = movingPiece;
+    board[toRow][toColumn] = capturedPiece;
+    movingPiece->setPosition(originalRow, originalCol);
+    
+    return inCheck;
 }
