@@ -24,18 +24,24 @@ namespace Student
             int rowDiff = toRow - _row;
             int colDiff = abs(toColumn - _column);
 
+            // Forward movement along same column
             if (colDiff == 0) {
+                // One square forward
                 if (rowDiff == direction) {
                     return _board->getPiece(toRow, toColumn) == nullptr;
                 }
                 
+                // Two squares forward - special starting positions
                 int boardSize = _board->getNumRows();
-                int whiteStartRow = boardSize - 2;
-                int blackStartRow = 1;
-                bool atStartingPosition = (_color == White && _row == whiteStartRow) ||
-                                         (_color == Black && _row == blackStartRow);
+                bool canMoveTwoSquares = false;
                 
-                if (atStartingPosition && rowDiff == 2 * direction) {
+                if (_color == Black && _row == 1) {
+                    canMoveTwoSquares = true;
+                } else if (_color == White && _row == boardSize - 2) {
+                    canMoveTwoSquares = true;
+                }
+                
+                if (canMoveTwoSquares && rowDiff == 2 * direction) {
                     int middleRow = _row + direction;
                     return _board->getPiece(middleRow, _column) == nullptr &&
                            _board->getPiece(toRow, toColumn) == nullptr;
