@@ -83,8 +83,13 @@ bool ChessBoard::isValidMove(int fromRow, int fromColumn, int toRow, int toColum
         bool kingCurrentlyInCheck = isPieceUnderThreat(kingRow, kingCol);
         
         if (kingCurrentlyInCheck) {
-            // If king is in check, this move must get the king out of check
-            // Simulate the move and check if king is still in check afterwards
+            // If king is in check, you cannot resolve check by capturing the enemy king
+            ChessPiece *targetPiece = board[toRow][toColumn];
+            if (targetPiece != nullptr && targetPiece->getType() == King) {
+                return false; // Cannot capture enemy king while in check
+            }
+            
+            // For other moves, simulate and check if king is still in check afterwards
             ChessPiece *capturedPiece = board[toRow][toColumn];
             int originalRow = piece->getRow();
             int originalCol = piece->getColumn();
