@@ -76,6 +76,41 @@ bool ChessBoard::isValidMove(int fromRow, int fromColumn, int toRow, int toColum
         return false;
     }
 
+    // Check if the moving player's king is currently in check
+    Color movingColor = piece->getColor();
+    int kingRow, kingCol;
+    if (findKing(movingColor, kingRow, kingCol)) {
+        bool kingCurrentlyInCheck = isPieceUnderThreat(kingRow, kingCol);
+        
+        if (kingCurrentlyInCheck) {
+            // If king is in check, this move must get the king out of check
+            // Simulate the move and check if king is still in check afterwards
+            ChessPiece *capturedPiece = board[toRow][toColumn];
+            int originalRow = piece->getRow();
+            int originalCol = piece->getColumn();
+            
+            // Make the move temporarily
+            board[toRow][toColumn] = piece;
+            board[fromRow][fromColumn] = nullptr;
+            piece->setPosition(toRow, toColumn);
+            
+            // Check if king is still in check after this move
+            bool kingStillInCheck = false;
+            if (findKing(movingColor, kingRow, kingCol)) {
+                kingStillInCheck = isPieceUnderThreat(kingRow, kingCol);
+            }
+            
+            // Rollback the move
+            board[fromRow][fromColumn] = piece;
+            board[toRow][toColumn] = capturedPiece;
+            piece->setPosition(originalRow, originalCol);
+            
+            if (kingStillInCheck) {
+                return false; // Move doesn't resolve the check
+            }
+        }
+    }
+
     Type pieceType = piece->getType();
     if (pieceType == Rook || pieceType == Bishop) {
         int rowStep = 0;
