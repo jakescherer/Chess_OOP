@@ -74,6 +74,13 @@ bool ChessBoard::isValidMove(int fromRow, int fromColumn, int toRow, int toColum
         return false;
     }
 
+    bool willPromote = false;
+    if (piece->getType() == Pawn) {
+        if ((piece->getColor() == White && toRow == 0) || (piece->getColor() == Black && toRow == numRows - 1)) {
+            willPromote = true;
+        }
+    }
+
     ChessPiece *targetPiece = board[toRow][toColumn];
     if (targetPiece != nullptr && targetPiece->getColor() == piece->getColor()) {
         return false;
@@ -93,25 +100,37 @@ bool ChessBoard::isValidMove(int fromRow, int fromColumn, int toRow, int toColum
         ChessPiece *capturedPiece = board[toRow][toColumn];
         int originalRow = piece->getRow();
         int originalCol = piece->getColumn();
-        
+
+        // Use a promoted queen
+        ChessPiece *movedPiece = piece;
+        ChessPiece *promotedSimulated = nullptr;
+        if (willPromote) {
+            promotedSimulated = new Student::QueenPiece(*this, piece->getColor(), toRow, toColumn);
+            movedPiece = promotedSimulated;
+        }
+
         // Make the move temporarily
-        board[toRow][toColumn] = piece;
+        board[toRow][toColumn] = movedPiece;
         board[fromRow][fromColumn] = nullptr;
-        piece->setPosition(toRow, toColumn);
-        
+        movedPiece->setPosition(toRow, toColumn);
+
         // Check if king would be in check after this move
         bool kingWouldBeInCheck = false;
         if (findKing(movingColor, kingRow, kingCol)) {
             kingWouldBeInCheck = isPieceUnderThreat(kingRow, kingCol);
         }
-        
+
         // Rollback the move
         board[fromRow][fromColumn] = piece;
         board[toRow][toColumn] = capturedPiece;
         piece->setPosition(originalRow, originalCol);
-        
+
+        if (promotedSimulated != nullptr) {
+            delete promotedSimulated;
+        }
+
         if (kingWouldBeInCheck) {
-            return false; // Move would leave king in check
+            return false;
         }
     }
 
@@ -138,29 +157,6 @@ bool ChessBoard::isValidMove(int fromRow, int fromColumn, int toRow, int toColum
             currentCol += colStep;
         }
     }
-
-    // Kings cannot move into check
-    if (pieceType == King) {
-        ChessPiece *capturedPiece = board[toRow][toColumn];
-        int originalRow = piece->getRow();
-        int originalCol = piece->getColumn();
-        
-        board[toRow][toColumn] = piece;
-        board[fromRow][fromColumn] = nullptr;
-        piece->setPosition(toRow, toColumn);
-        
-        bool wouldBeUnderThreat = isPieceUnderThreat(toRow, toColumn);
-        
-        // rollback move
-        board[fromRow][fromColumn] = piece;
-        board[toRow][toColumn] = capturedPiece;
-        piece->setPosition(originalRow, originalCol);
-        
-        if (wouldBeUnderThreat) {
-            return false; // King cannot move into check
-        }
-    }
-
     return true;
 }
 
@@ -219,7 +215,18 @@ bool ChessBoard::movePiece(int fromRow, int fromColumn, int toRow, int toColumn)
     board[toRow][toColumn] = piece;
     board[fromRow][fromColumn] = nullptr;
     piece->setPosition(toRow, toColumn);
-
+    //pawn promotion
+    if (piece->getType() == Pawn) {
+        int lastRowWhite = 0;
+        int lastRowBlack = numRows - 1;
+        if ((piece->getColor() == White && toRow == lastRowWhite) || (piece->getColor() == Black && toRow == lastRowBlack)) {
+            Color promoteColor = piece->getColor();
+            delete piece;
+            ChessPiece* newQueen = new Student::QueenPiece(*this, promoteColor, toRow, toColumn);
+            board[toRow][toColumn] = newQueen;
+            piece = newQueen;
+        }
+    }
     // Toggle turn
     turn = (turn == White) ? Black : White;
 
@@ -252,7 +259,7 @@ bool ChessBoard::isPieceUnderThreat(int row, int col) {
 
             // Check path obstruction for Rook and Bishop
             Type pieceType = attacker->getType();
-            if (pieceType == Rook || pieceType == Bishop) {
+            if (pieceType == Rook || pieceType == Bishop || pieceType == Queen) {
                 int rowStep = 0;
                 int colStep = 0;
 
