@@ -3,6 +3,8 @@
 #include "RookPiece.hh"
 #include "BishopPiece.hh"
 #include "KingPiece.hh"
+#include "KnightPiece.hh"
+#include "QueenPiece.hh"
 
 using Student::ChessBoard;
 using Student::ChessPiece;
@@ -48,7 +50,12 @@ void ChessBoard::createChessPiece(Color col, Type ty, int startRow, int startCol
         case King:
             piece = new Student::KingPiece(*this, col, startRow, startColumn);
             break;
-     
+        case Knight:
+            piece = new Student::KnightPiece(*this, col, startRow, startColumn);
+            break;
+        case Queen:
+            piece = new Student::QueenPiece(*this, col, startRow, startColumn);
+            break;
     }
     board[startRow][startColumn] = piece;
 }
@@ -109,7 +116,7 @@ bool ChessBoard::isValidMove(int fromRow, int fromColumn, int toRow, int toColum
     }
 
     Type pieceType = piece->getType();
-    if (pieceType == Rook || pieceType == Bishop) {
+    if (pieceType == Rook || pieceType == Bishop || pieceType == Queen) {
         int rowStep = 0;
         int colStep = 0;
 
@@ -159,6 +166,9 @@ bool ChessBoard::isValidMove(int fromRow, int fromColumn, int toRow, int toColum
 
 bool ChessBoard::movePiece(int fromRow, int fromColumn, int toRow, int toColumn)
 {
+    bool oldEP = enPassantAvailable;
+    int oldRow = enPassantRow;
+    int oldCol = enPassantCol;
     // Check if the piece being moved belongs to the current team
     ChessPiece *piece = getPiece(fromRow, fromColumn);
     if (piece == nullptr || piece->getColor() != turn) {
@@ -171,6 +181,34 @@ bool ChessBoard::movePiece(int fromRow, int fromColumn, int toRow, int toColumn)
     }
 
     ChessPiece *targetPiece = getPiece(toRow, toColumn);
+    
+    if (piece->getType() == Pawn &&
+        targetPiece == nullptr &&
+        toColumn != fromColumn)
+    {
+        if (oldEP && toRow == oldRow && toColumn == oldCol)
+        {
+            int capturedPawnRow = (piece->getColor() == White) ? toRow + 1 : toRow - 1;
+            ChessPiece* capturedPawn = board[capturedPawnRow][toColumn];
+            if (capturedPawn != nullptr && capturedPawn->getType() == Pawn && capturedPawn->getColor() != piece->getColor())
+            {
+                delete capturedPawn;
+                board[capturedPawnRow][toColumn] = nullptr;
+            }
+        }
+    }
+
+     enPassantAvailable = false;
+
+    if (piece->getType() == Pawn) {
+        int direction = (piece->getColor() == White) ? -1 : 1;
+        if (toRow == fromRow + 2 * direction) {
+            enPassantAvailable = true;
+            enPassantRow = fromRow + direction;
+            enPassantCol = fromColumn;
+            enPassantColor = piece->getColor();
+        }
+    }
 
     // delete other team target if found
     if (targetPiece != nullptr && targetPiece->getColor() != piece->getColor()) {

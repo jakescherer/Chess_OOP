@@ -12,6 +12,10 @@ namespace Student
     private:
         int numRows = 0;
         int numCols = 0;
+        int enPassantRow = -1;
+        int enPassantCol = -1;
+        Color enPassantColor;  
+        bool enPassantAvailable = false;
         Color turn = White;
         /**
          * @brief
@@ -47,6 +51,12 @@ namespace Student
          * Number of columns in chess board.
          */
         int getNumCols() { return numCols; }
+        
+        bool getEnPassantAvailable() { return enPassantAvailable; }
+        int getEnPassantRow() { return enPassantRow; }
+        int getEnPassantCol() { return enPassantCol; }
+        Color getEnPassantColor() { return enPassantColor; }
+
 
         /**
          * @return
@@ -160,6 +170,7 @@ namespace Student
          * Returns true if the move would result in the king being in check.
          */
         bool wouldBeInCheck(int fromRow, int fromColumn, int toRow, int toColumn);
+
     };
 }
 

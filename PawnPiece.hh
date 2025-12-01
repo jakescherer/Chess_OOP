@@ -51,9 +51,22 @@ namespace Student
 
             if (colDiff == 1 && rowDiff == direction) {
                 ChessPiece *targetPiece = _board->getPiece(toRow, toColumn);
-                return targetPiece != nullptr && targetPiece->getColor() != _color;
-            }
 
+                // Normal capture
+                if (targetPiece != nullptr && targetPiece->getColor() != _color) {
+                    return true;
+                }
+
+                // En passant capture
+                if (_board->getEnPassantAvailable() &&
+                    toRow == _board->getEnPassantRow() &&
+                    toColumn == _board->getEnPassantCol())
+                {
+                    // Must be capturing enemy pawn via en passant
+                    return true;
+                }
+                return false;
+            }
             return false;
         }
 
