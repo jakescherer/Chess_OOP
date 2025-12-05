@@ -429,8 +429,8 @@ bool ChessBoard::wouldBeInCheck(int fromRow, int fromColumn, int toRow, int toCo
 
 float ChessBoard::scoreBoard()
 {
-    float myScore = 0.0;
-    float opponentScore = 0.0;
+    int myScore = 0;
+    int opponentScore = 0;
     
     Color myColor = turn;
     Color opponentColor = (turn == White) ? Black : White;
@@ -442,23 +442,23 @@ float ChessBoard::scoreBoard()
                 continue;
             }
             
-            float pieceValue = 0.0;
+            int pieceValue = 0;
             switch (piece->getType()) {
                 case King:
-                    pieceValue = 200.0;
+                    pieceValue = 2000;
                     break;
                 case Queen:
-                    pieceValue = 9.0;
+                    pieceValue = 90;
                     break;
                 case Rook:
-                    pieceValue = 5.0;
+                    pieceValue = 50;
                     break;
                 case Knight:
                 case Bishop:
-                    pieceValue = 3.0;
+                    pieceValue = 30;
                     break;
                 case Pawn:
-                    pieceValue = 1.0;
+                    pieceValue = 10;
                     break;
             }
             
@@ -477,16 +477,13 @@ float ChessBoard::scoreBoard()
                 continue;
             }
             
-            int moveCount = 0;
             for (int toR = 0; toR < numRows; toR++) {
                 for (int toC = 0; toC < numCols; toC++) {
                     if (isValidMove(r, c, toR, toC)) {
-                        moveCount++;
+                        myScore++;
                     }
                 }
             }
-            
-            myScore += moveCount * 0.1;
         }
     }
     
@@ -501,27 +498,25 @@ float ChessBoard::scoreBoard()
             }
             
             if (piece->getColor() == opponentColor) {
-                int moveCount = 0;
                 for (int toR = 0; toR < numRows; toR++) {
                     for (int toC = 0; toC < numCols; toC++) {
                         if (isValidMove(r, c, toR, toC)) {
-                            moveCount++;
+                            opponentScore++;
                         }
                     }
                 }
-                opponentScore += moveCount * 0.1;
             }
         }
     }
     
     turn = originalTurn;
     
-    return myScore - opponentScore;
+    return (myScore - opponentScore) / 10.0f;
 }
 
 float ChessBoard::getHighestNextScore()
 {
-    float highestScore = -999999.0;
+    float highestScore = -999999.0f;
     
     for (int fromR = 0; fromR < numRows; fromR++) {
         for (int fromC = 0; fromC < numCols; fromC++) {
