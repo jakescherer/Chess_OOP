@@ -473,24 +473,20 @@ float ChessBoard::scoreBoard()
     for (int r = 0; r < numRows; r++) {
         for (int c = 0; c < numCols; c++) {
             ChessPiece *piece = board[r][c];
-            if (piece == nullptr) {
+            if (piece == nullptr || piece->getColor() != myColor) {
                 continue;
             }
             
             int moveCount = 0;
             for (int toR = 0; toR < numRows; toR++) {
                 for (int toC = 0; toC < numCols; toC++) {
-                    if (piece->getColor() == myColor) {
-                        if (isValidMove(r, c, toR, toC)) {
-                            moveCount++;
-                        }
+                    if (isValidMove(r, c, toR, toC)) {
+                        moveCount++;
                     }
                 }
             }
             
-            if (piece->getColor() == myColor) {
-                myScore += moveCount * 0.1;
-            }
+            myScore += moveCount * 0.1;
         }
     }
     
