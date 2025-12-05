@@ -11,6 +11,7 @@ ChessPiece::ChessPiece(ChessBoard &board, Color color, int row, int column)
     _row = row;
     _column = column;
     _type = Pawn;
+    _hasMoved = false;
 }
 
 Color ChessPiece::getColor()
@@ -33,7 +34,19 @@ int ChessPiece::getColumn()
     return _column;
 }
 
+bool ChessPiece::getHasMoved()
+{
+    return _hasMoved;
+}
+
 void ChessPiece::setPosition(int row, int column)
+{
+    _row = row;
+    _column = column;
+    _hasMoved = true;
+}
+
+void ChessPiece::setPositionWithoutMoving(int row, int column)
 {
     _row = row;
     _column = column;

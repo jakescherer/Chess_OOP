@@ -87,21 +87,64 @@ bool ChessBoard::isValidMove(int fromRow, int fromColumn, int toRow, int toColum
     }
 
     if (!piece->canMoveToLocation(toRow, toColumn)) {
-        return false;
+        if (piece->getType() == King && fromRow == toRow && abs(toColumn - fromColumn) == 2) {
+            if (piece->getHasMoved()) {
+                return false;
+            }
+            
+            if (isPieceUnderThreat(fromRow, fromColumn)) {
+                return false;
+            }
+            
+            int direction = (toColumn > fromColumn) ? 1 : -1;
+            int rookCol = (direction == 1) ? numCols - 1 : 0;
+            int rookRow = fromRow;
+            
+            ChessPiece *rook = board[rookRow][rookCol];
+            
+            if (rook == nullptr || rook->getType() != Rook || 
+                rook->getColor() != piece->getColor() || rook->getHasMoved()) {
+                return false;
+            }
+            
+            int start = (direction == 1) ? fromColumn + 1 : rookCol + 1;
+            int end = (direction == 1) ? rookCol : fromColumn;
+            for (int col = start; col < end; col++) {
+                if (board[fromRow][col] != nullptr) {
+                    return false;
+                }
+            }
+            
+            int skipCol = fromColumn + direction;
+            
+            ChessPiece *originalAtSkip = board[fromRow][skipCol];
+            board[fromRow][skipCol] = piece;
+            board[fromRow][fromColumn] = nullptr;
+            int origRow = piece->getRow();
+            int origCol = piece->getColumn();
+            piece->setPositionWithoutMoving(fromRow, skipCol);
+            
+            bool skipUnderThreat = isPieceUnderThreat(fromRow, skipCol);
+            
+            board[fromRow][fromColumn] = piece;
+            board[fromRow][skipCol] = originalAtSkip;
+            piece->setPositionWithoutMoving(origRow, origCol);
+            
+            if (skipUnderThreat) {
+                return false;
+            }
+        } else {
+            return false;
+        }
     }
 
-    // Check ALL check-related constraints: 
-    // 1. If king is in check, move must resolve it
-    // 2. Move cannot leave own king in check
     Color movingColor = piece->getColor();
     int kingRow, kingCol;
     if (findKing(movingColor, kingRow, kingCol)) {
-        // Simulate the move to check if king would be in check afterwards
         ChessPiece *capturedPiece = board[toRow][toColumn];
         int originalRow = piece->getRow();
         int originalCol = piece->getColumn();
 
-        // Use a promoted queen
         ChessPiece *movedPiece = piece;
         ChessPiece *promotedSimulated = nullptr;
         if (willPromote) {
@@ -109,21 +152,18 @@ bool ChessBoard::isValidMove(int fromRow, int fromColumn, int toRow, int toColum
             movedPiece = promotedSimulated;
         }
 
-        // Make the move temporarily
         board[toRow][toColumn] = movedPiece;
         board[fromRow][fromColumn] = nullptr;
-        movedPiece->setPosition(toRow, toColumn);
+        movedPiece->setPositionWithoutMoving(toRow, toColumn);
 
-        // Check if king would be in check after this move
         bool kingWouldBeInCheck = false;
         if (findKing(movingColor, kingRow, kingCol)) {
             kingWouldBeInCheck = isPieceUnderThreat(kingRow, kingCol);
         }
 
-        // Rollback the move
         board[fromRow][fromColumn] = piece;
         board[toRow][toColumn] = capturedPiece;
-        piece->setPosition(originalRow, originalCol);
+        piece->setPositionWithoutMoving(originalRow, originalCol);
 
         if (promotedSimulated != nullptr) {
             delete promotedSimulated;
@@ -151,7 +191,7 @@ bool ChessBoard::isValidMove(int fromRow, int fromColumn, int toRow, int toColum
 
         while (currentRow != toRow || currentCol != toColumn) {
             if (board[currentRow][currentCol] != nullptr) {
-                return false; // Path is obstructed
+                return false;
             }
             currentRow += rowStep;
             currentCol += colStep;
@@ -165,15 +205,26 @@ bool ChessBoard::movePiece(int fromRow, int fromColumn, int toRow, int toColumn)
     bool oldEP = enPassantAvailable;
     int oldRow = enPassantRow;
     int oldCol = enPassantCol;
-    // Check if the piece being moved belongs to the current team
     ChessPiece *piece = getPiece(fromRow, fromColumn);
     if (piece == nullptr || piece->getColor() != turn) {
-        return false; // no piece or not the team's turn
+        return false;
     }
 
-    // basic move check (bounds, piece movement rules, path obstruction, check prevention)
     if (!isValidMove(fromRow, fromColumn, toRow, toColumn)) {
         return false;
+    }
+
+    bool isCastling = false;
+    ChessPiece *rookToMove = nullptr;
+    int rookFromCol = -1;
+    int rookToCol = -1;
+    
+    if (piece->getType() == King && fromRow == toRow && abs(toColumn - fromColumn) == 2) {
+        isCastling = true;
+        int direction = (toColumn > fromColumn) ? 1 : -1;
+        rookFromCol = (direction == 1) ? numCols - 1 : 0;
+        rookToCol = fromColumn + direction;
+        rookToMove = board[fromRow][rookFromCol];
     }
 
     ChessPiece *targetPiece = getPiece(toRow, toColumn);
@@ -206,16 +257,20 @@ bool ChessBoard::movePiece(int fromRow, int fromColumn, int toRow, int toColumn)
         }
     }
 
-    // delete other team target if found
     if (targetPiece != nullptr && targetPiece->getColor() != piece->getColor()) {
         delete targetPiece;
     }
 
-    // Move piece
     board[toRow][toColumn] = piece;
     board[fromRow][fromColumn] = nullptr;
     piece->setPosition(toRow, toColumn);
-    //pawn promotion
+    
+    if (isCastling && rookToMove != nullptr) {
+        board[fromRow][rookToCol] = rookToMove;
+        board[fromRow][rookFromCol] = nullptr;
+        rookToMove->setPosition(fromRow, rookToCol);
+    }
+    
     if (piece->getType() == Pawn) {
         int lastRowWhite = 0;
         int lastRowBlack = numRows - 1;
@@ -227,7 +282,6 @@ bool ChessBoard::movePiece(int fromRow, int fromColumn, int toRow, int toColumn)
             piece = newQueen;
         }
     }
-    // Toggle turn
     turn = (turn == White) ? Black : White;
 
     return true;
@@ -245,19 +299,17 @@ bool ChessBoard::isPieceUnderThreat(int row, int col) {
         for (int c = 0; c < numCols; c++) {
             ChessPiece *attacker = getPiece(r, c);
 
-            if (attacker == nullptr) { //empty space
+            if (attacker == nullptr) {
                 continue;
             }
-            if (attacker->getColor() == targetColor) {//same team
+            if (attacker->getColor() == targetColor) {
                 continue;
             }
             
-            // Simple line of attack check - can this piece reach the target?
             if (!attacker->canMoveToLocation(row, col)) {
                 continue;
             }
 
-            // Check path obstruction for Rook and Bishop
             Type pieceType = attacker->getType();
             if (pieceType == Rook || pieceType == Bishop || pieceType == Queen) {
                 int rowStep = 0;
@@ -288,7 +340,7 @@ bool ChessBoard::isPieceUnderThreat(int row, int col) {
                 }
             }
 
-            return true; // Found an attacker with clear line of attack
+            return true;
         }
     }
 
@@ -340,26 +392,25 @@ bool ChessBoard::findKing(Color color, int &kingRow, int &kingCol)
             }
         }
     }
-    return false; // king not found (shouldn't happen in a valid game)
+    return false;
 }
 
 bool ChessBoard::wouldBeInCheck(int fromRow, int fromColumn, int toRow, int toColumn)
 {
     ChessPiece *movingPiece = board[fromRow][fromColumn];
     if (movingPiece == nullptr) {
-        return false; // No piece to move
+        return false;
     }
 
     Color movingColor = movingPiece->getColor();
     
-    // Save current state for rollback
     ChessPiece *capturedPiece = board[toRow][toColumn];
     int originalRow = movingPiece->getRow();
     int originalCol = movingPiece->getColumn();
     
     board[toRow][toColumn] = movingPiece;
     board[fromRow][fromColumn] = nullptr;
-    movingPiece->setPosition(toRow, toColumn);
+    movingPiece->setPositionWithoutMoving(toRow, toColumn);
     
     int kingRow, kingCol;
     bool kingFound = findKing(movingColor, kingRow, kingCol);
@@ -369,10 +420,9 @@ bool ChessBoard::wouldBeInCheck(int fromRow, int fromColumn, int toRow, int toCo
         inCheck = isPieceUnderThreat(kingRow, kingCol);
     }
     
-    // Rollback the move
     board[fromRow][fromColumn] = movingPiece;
     board[toRow][toColumn] = capturedPiece;
-    movingPiece->setPosition(originalRow, originalCol);
+    movingPiece->setPositionWithoutMoving(originalRow, originalCol);
     
     return inCheck;
 }

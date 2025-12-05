@@ -52,7 +52,7 @@ void testMovePieceWithTurn() {
               << (board.movePiece(2, 0, 3, 0) ? "PASS: Move Failed" : "FAIL") << std::endl;
 }
 
-int demo_main()
+int main()
 {
     test_part1_4x4_1();
     testMovePieceWithTurn();

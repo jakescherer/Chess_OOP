@@ -15,6 +15,7 @@
     Type _type;
     int _row;
     int _column;
+    bool _hasMoved;
 
   public:
     /**
@@ -66,6 +67,12 @@
     int getColumn();
 
     /**
+     * @return
+     * Whether the piece has moved from its starting position.
+     */
+    bool getHasMoved();
+
+    /**
      * @brief Sets row and column numbers of piece.
      * @param row
      * The new row number of the piece.
@@ -73,6 +80,15 @@
      * The new column number of the piece.
      */
     virtual void setPosition(int row, int column);
+
+    /**
+     * @brief Sets row and column numbers without marking as moved (for simulations).
+     * @param row
+     * The new row number of the piece.
+     * @param column
+     * The new column number of the piece.
+     */
+    void setPositionWithoutMoving(int row, int column);
 
     /**
      * @brief
