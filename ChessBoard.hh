@@ -157,7 +157,6 @@ namespace Student
         /**
          * @brief
          * Checks if making a move would leave the moving player's king in check.
-         * This method simulates the move without permanently modifying the board.
          * @param fromRow
          * The row of the piece to be moved.
          * @param fromColumn
@@ -170,6 +169,23 @@ namespace Student
          * Returns true if the move would result in the king being in check.
          */
         bool wouldBeInCheck(int fromRow, int fromColumn, int toRow, int toColumn);
+
+        /**
+         * @brief
+         * Computes the score from the perspective of the current player.
+         * @return
+         * The score as a float value.
+         */
+        float scoreBoard();
+
+        /**
+         * @brief
+         * Looks at all possible moves from the perspective of the current player
+         * and returns the highest score achievable after making a single move.
+         * @return
+         * The highest score achievable in the next move.
+         */
+        float getHighestNextScore();
 
     };
 }

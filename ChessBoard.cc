@@ -426,3 +426,144 @@ bool ChessBoard::wouldBeInCheck(int fromRow, int fromColumn, int toRow, int toCo
     
     return inCheck;
 }
+
+float ChessBoard::scoreBoard()
+{
+    float myScore = 0.0;
+    float opponentScore = 0.0;
+    
+    Color myColor = turn;
+    Color opponentColor = (turn == White) ? Black : White;
+    
+    for (int r = 0; r < numRows; r++) {
+        for (int c = 0; c < numCols; c++) {
+            ChessPiece *piece = board[r][c];
+            if (piece == nullptr) {
+                continue;
+            }
+            
+            float pieceValue = 0.0;
+            switch (piece->getType()) {
+                case King:
+                    pieceValue = 200.0;
+                    break;
+                case Queen:
+                    pieceValue = 9.0;
+                    break;
+                case Rook:
+                    pieceValue = 5.0;
+                    break;
+                case Knight:
+                case Bishop:
+                    pieceValue = 3.0;
+                    break;
+                case Pawn:
+                    pieceValue = 1.0;
+                    break;
+            }
+            
+            if (piece->getColor() == myColor) {
+                myScore += pieceValue;
+            } else {
+                opponentScore += pieceValue;
+            }
+        }
+    }
+    
+    for (int r = 0; r < numRows; r++) {
+        for (int c = 0; c < numCols; c++) {
+            ChessPiece *piece = board[r][c];
+            if (piece == nullptr) {
+                continue;
+            }
+            
+            int moveCount = 0;
+            for (int toR = 0; toR < numRows; toR++) {
+                for (int toC = 0; toC < numCols; toC++) {
+                    if (piece->getColor() == myColor) {
+                        if (isValidMove(r, c, toR, toC)) {
+                            moveCount++;
+                        }
+                    }
+                }
+            }
+            
+            if (piece->getColor() == myColor) {
+                myScore += moveCount * 0.1;
+            }
+        }
+    }
+    
+    Color originalTurn = turn;
+    turn = opponentColor;
+    
+    for (int r = 0; r < numRows; r++) {
+        for (int c = 0; c < numCols; c++) {
+            ChessPiece *piece = board[r][c];
+            if (piece == nullptr) {
+                continue;
+            }
+            
+            if (piece->getColor() == opponentColor) {
+                int moveCount = 0;
+                for (int toR = 0; toR < numRows; toR++) {
+                    for (int toC = 0; toC < numCols; toC++) {
+                        if (isValidMove(r, c, toR, toC)) {
+                            moveCount++;
+                        }
+                    }
+                }
+                opponentScore += moveCount * 0.1;
+            }
+        }
+    }
+    
+    turn = originalTurn;
+    
+    return myScore - opponentScore;
+}
+
+float ChessBoard::getHighestNextScore()
+{
+    float highestScore = -999999.0;
+    
+    for (int fromR = 0; fromR < numRows; fromR++) {
+        for (int fromC = 0; fromC < numCols; fromC++) {
+            ChessPiece *piece = board[fromR][fromC];
+            if (piece == nullptr || piece->getColor() != turn) {
+                continue;
+            }
+            
+            for (int toR = 0; toR < numRows; toR++) {
+                for (int toC = 0; toC < numCols; toC++) {
+                    if (isValidMove(fromR, fromC, toR, toC)) {
+                        ChessPiece *targetPiece = board[toR][toC];
+                        int origRow = piece->getRow();
+                        int origCol = piece->getColumn();
+                        
+                        board[toR][toC] = piece;
+                        board[fromR][fromC] = nullptr;
+                        piece->setPositionWithoutMoving(toR, toC);
+                        
+                        Color originalTurn = turn;
+                        turn = (turn == White) ? Black : White;
+                        
+                        float score = -scoreBoard();
+                        
+                        turn = originalTurn;
+                        
+                        board[fromR][fromC] = piece;
+                        board[toR][toC] = targetPiece;
+                        piece->setPositionWithoutMoving(origRow, origCol);
+                        
+                        if (score > highestScore) {
+                            highestScore = score;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    return highestScore;
+}
